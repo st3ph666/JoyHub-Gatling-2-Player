@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
-from __future__ import annotations
+"""JoyHub Gatling 2 application and embedded BLE engine."""
 
+from __future__ import annotations
 import base64
 import json
 import os
@@ -14,51 +14,12 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-VIDEO_DIR = Path(os.environ.get("JOYHUB_VIDEO_DIR", str(Path.home() / "Videos")))
-SCRIPT_DIR = VIDEO_DIR / "RotaryScript"
-PLAYER = Path.home() / ".cache/joyhub-gatling2-player/gatling2-ble-direct-engine.py"
-APP_VERSION = "v1.3.4"
-APP_NAME = f"JoyHub Gatling 2 Player {APP_VERSION}"
-PYTHON = Path(sys.executable)
-CONFIG = Path.home() / ".config/joyhub-gatling2-player/config.json"
-
-VIDEO_EXTENSIONS = {".mp4", ".mkv", ".avi", ".mov", ".webm", ".m4v"}
-
-TRANSLATIONS = {'Vidéos': 'Videos', 'Tous les fichiers': 'All files', 'Aucun script sélectionné': 'No script selected', 'Choisis une vidéo pour commencer.': 'Choose a video to start.', 'MOUVEMENT FUNSCRIPT — clique ou glisse pour déplacer la vidéo': 'FUNSCRIPT MOVEMENT — click or drag to seek the video', 'Pause / Reprendre': 'Pause / Resume', 'Conversion directe en rotation — amplification adaptateur 0 à 100 %': 'Direct rotary conversion — adapter amplification 0 to 100%', 'Fichier': 'File', 'Vidéo': 'Video', 'Parcourir': 'Browse', 'Script': 'Script', 'Réglages': 'Settings', 'Puissance maximale': 'Maximum power', 'Passage à zéro': 'Zero hold', 'Lissage': 'Smoothing', 'Vitesse minimale': 'Minimum speed', 'Amplification adaptateur': 'Adapter amplification', 'Ouvrir MPV en plein écran sur l’écran de droite': 'Open MPV fullscreen on the right display', 'Pompage Gatling 2 au début de chaque cycle': 'Gatling 2 pumping at the start of each cycle', 'Durée du pompage': 'Pump duration', 'Pause entre pompages': 'Pause between pumps', 'Niveau de pompe (max 7)': 'Pump level (max 7)', 'Supprimer la vidéo et ses funscripts à la fin ou en passant à la suivante': 'Delete video and its funscripts at the end or when moving to the next', 'Passer automatiquement à la vidéo suivante': 'Automatically play the next video', 'Patterns de pompage — sélection libre': 'Pump patterns — free selection', 'Chaque pattern est joué au complet, puis un autre est choisi parmi les sélections. Niveau toujours limité à 7.': 'Each pattern is played in full, then another is chosen from the selection. Level is always limited to 7.', '▶  Lancer la vidéo': '▶  Play video', '⏭  Lire le dossier': '⏭  Play folder', '⏩  Vidéo suivante': '⏩  Next video', '🧪  Test pompage continu 10 s': '🧪  Continuous pump test 10 s', '■  Arrêter': '■  Stop', 'Choisis une vidéo avec son funscript': 'Choose a video with its funscript', 'sélectionné(s)': 'selected'}
-
-VIDEO_TYPES = (
-    ("Vidéos", "*.mp4 *.mkv *.avi *.mov *.webm *.m4v"),
-    ("Tous les fichiers", "*"),
-)
-
-PUMP_PATTERNS = {'01 Escalier montant': [1, 2, 3, 4, 5, 6, 7], '02 Escalier descendant': [7, 6, 5, 4, 3, 2, 1], '03 Vague complète': [1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2], '04 Vague courte': [1, 3, 5, 7, 5, 3], '05 Montée rapide': [1, 3, 5, 7], '06 Descente rapide': [7, 5, 3, 1], '07 Alternance extrême': [1, 7, 1, 7, 1, 7], '08 Alternance douce': [2, 5, 2, 5, 2, 5], '09 Double maximum': [2, 4, 7, 7, 4, 2], '10 Triple maximum': [3, 5, 7, 7, 7, 5, 3], '11 Double bas': [1, 1, 3, 5, 7], '12 Double haut': [1, 3, 5, 7, 7], '13 Marche paire': [2, 4, 6, 7, 6, 4, 2], '14 Marche impaire': [1, 3, 5, 7, 5, 3, 1], '15 Pic central': [1, 2, 4, 7, 4, 2, 1], '16 Pic double': [1, 3, 7, 3, 1, 3, 7, 3], '17 Pulsation 3-7': [3, 7, 3, 7, 3, 7], '18 Pulsation 4-7': [4, 7, 4, 7, 4, 7], '19 Pulsation 5-7': [5, 7, 5, 7, 5, 7], '20 Pulsation 1-5': [1, 5, 1, 5, 1, 5], '21 Dent de scie montante': [1, 2, 4, 6, 7, 2, 4, 6, 7], '22 Dent de scie descendante': [7, 6, 4, 2, 1, 6, 4, 2, 1], '23 Deux marches': [1, 2, 3, 7, 1, 2, 3, 7], '24 Trois marches': [1, 2, 4, 7, 2, 4, 7], '25 Plateau moyen': [1, 3, 5, 5, 5, 7], '26 Plateau haut': [2, 4, 6, 7, 7, 7, 6, 4], '27 Plateau bas': [1, 1, 1, 3, 5, 7], '28 Accélération niveau': [1, 2, 3, 5, 7, 7, 7], '29 Décélération niveau': [7, 7, 7, 5, 3, 2, 1], '30 Battement court': [2, 7, 2, 4, 2, 7], '31 Battement long': [1, 4, 7, 4, 1, 4, 7, 4], '32 Battement asymétrique': [1, 6, 2, 7, 3, 5], '33 Haut dominant': [4, 5, 6, 7, 6, 7, 5, 7], '34 Bas dominant': [1, 2, 1, 3, 1, 4, 1, 5], '35 Escalier double': [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7], '36 Escalier saut 2': [1, 3, 5, 7, 6, 4, 2], '37 Triangle serré': [3, 4, 5, 6, 7, 6, 5, 4], '38 Triangle large': [1, 2, 4, 6, 7, 6, 4, 2], '39 Maximum intermittent': [7, 2, 3, 7, 3, 4, 7, 4, 5], '40 Maximum fréquent': [7, 5, 7, 4, 7, 3, 7, 2], '41 Maximum progressif': [2, 3, 4, 5, 6, 7, 7, 7], '42 Relance basse': [1, 7, 1, 2, 7, 2, 3, 7], '43 Relance moyenne': [3, 7, 3, 4, 7, 4, 5, 7], '44 Groupes de deux': [2, 2, 5, 5, 7, 7, 4, 4], '45 Groupes de trois': [2, 2, 2, 5, 5, 5, 7, 7, 7], '46 Syncopé A': [1, 4, 2, 6, 3, 7, 2, 5], '47 Syncopé B': [7, 3, 6, 2, 5, 1, 4, 2], '48 Cascade': [1, 4, 7, 2, 5, 7, 3, 6, 7], '49 Cascade inverse': [7, 6, 3, 7, 5, 2, 7, 4, 1], '50 Chaos contrôlé': [1, 6, 3, 7, 2, 5, 4, 7, 3, 6]}
-PUMP_PATTERN_LABELS = {'01 Escalier montant': '01 Escalier montant — 1 → 2 → 3 → 4 → 5 → 6 → 7', '02 Escalier descendant': '02 Escalier descendant — 7 → 6 → 5 → 4 → 3 → 2 → 1', '03 Vague complète': '03 Vague complète — 1 → 2 → 3 → 4 → 5 → 6 → 7 → 6 → 5 → 4 → 3 → 2', '04 Vague courte': '04 Vague courte — 1 → 3 → 5 → 7 → 5 → 3', '05 Montée rapide': '05 Montée rapide — 1 → 3 → 5 → 7', '06 Descente rapide': '06 Descente rapide — 7 → 5 → 3 → 1', '07 Alternance extrême': '07 Alternance extrême — 1 → 7 → 1 → 7 → 1 → 7', '08 Alternance douce': '08 Alternance douce — 2 → 5 → 2 → 5 → 2 → 5', '09 Double maximum': '09 Double maximum — 2 → 4 → 7 → 7 → 4 → 2', '10 Triple maximum': '10 Triple maximum — 3 → 5 → 7 → 7 → 7 → 5 → 3', '11 Double bas': '11 Double bas — 1 → 1 → 3 → 5 → 7', '12 Double haut': '12 Double haut — 1 → 3 → 5 → 7 → 7', '13 Marche paire': '13 Marche paire — 2 → 4 → 6 → 7 → 6 → 4 → 2', '14 Marche impaire': '14 Marche impaire — 1 → 3 → 5 → 7 → 5 → 3 → 1', '15 Pic central': '15 Pic central — 1 → 2 → 4 → 7 → 4 → 2 → 1', '16 Pic double': '16 Pic double — 1 → 3 → 7 → 3 → 1 → 3 → 7 → 3', '17 Pulsation 3-7': '17 Pulsation 3-7 — 3 → 7 → 3 → 7 → 3 → 7', '18 Pulsation 4-7': '18 Pulsation 4-7 — 4 → 7 → 4 → 7 → 4 → 7', '19 Pulsation 5-7': '19 Pulsation 5-7 — 5 → 7 → 5 → 7 → 5 → 7', '20 Pulsation 1-5': '20 Pulsation 1-5 — 1 → 5 → 1 → 5 → 1 → 5', '21 Dent de scie montante': '21 Dent de scie montante — 1 → 2 → 4 → 6 → 7 → 2 → 4 → 6 → 7', '22 Dent de scie descendante': '22 Dent de scie descendante — 7 → 6 → 4 → 2 → 1 → 6 → 4 → 2 → 1', '23 Deux marches': '23 Deux marches — 1 → 2 → 3 → 7 → 1 → 2 → 3 → 7', '24 Trois marches': '24 Trois marches — 1 → 2 → 4 → 7 → 2 → 4 → 7', '25 Plateau moyen': '25 Plateau moyen — 1 → 3 → 5 → 5 → 5 → 7', '26 Plateau haut': '26 Plateau haut — 2 → 4 → 6 → 7 → 7 → 7 → 6 → 4', '27 Plateau bas': '27 Plateau bas — 1 → 1 → 1 → 3 → 5 → 7', '28 Accélération niveau': '28 Accélération niveau — 1 → 2 → 3 → 5 → 7 → 7 → 7', '29 Décélération niveau': '29 Décélération niveau — 7 → 7 → 7 → 5 → 3 → 2 → 1', '30 Battement court': '30 Battement court — 2 → 7 → 2 → 4 → 2 → 7', '31 Battement long': '31 Battement long — 1 → 4 → 7 → 4 → 1 → 4 → 7 → 4', '32 Battement asymétrique': '32 Battement asymétrique — 1 → 6 → 2 → 7 → 3 → 5', '33 Haut dominant': '33 Haut dominant — 4 → 5 → 6 → 7 → 6 → 7 → 5 → 7', '34 Bas dominant': '34 Bas dominant — 1 → 2 → 1 → 3 → 1 → 4 → 1 → 5', '35 Escalier double': '35 Escalier double — 1 → 1 → 2 → 2 → 3 → 3 → 4 → 4 → 5 → 5 → 6 → 6 → 7 → 7', '36 Escalier saut 2': '36 Escalier saut 2 — 1 → 3 → 5 → 7 → 6 → 4 → 2', '37 Triangle serré': '37 Triangle serré — 3 → 4 → 5 → 6 → 7 → 6 → 5 → 4', '38 Triangle large': '38 Triangle large — 1 → 2 → 4 → 6 → 7 → 6 → 4 → 2', '39 Maximum intermittent': '39 Maximum intermittent — 7 → 2 → 3 → 7 → 3 → 4 → 7 → 4 → 5', '40 Maximum fréquent': '40 Maximum fréquent — 7 → 5 → 7 → 4 → 7 → 3 → 7 → 2', '41 Maximum progressif': '41 Maximum progressif — 2 → 3 → 4 → 5 → 6 → 7 → 7 → 7', '42 Relance basse': '42 Relance basse — 1 → 7 → 1 → 2 → 7 → 2 → 3 → 7', '43 Relance moyenne': '43 Relance moyenne — 3 → 7 → 3 → 4 → 7 → 4 → 5 → 7', '44 Groupes de deux': '44 Groupes de deux — 2 → 2 → 5 → 5 → 7 → 7 → 4 → 4', '45 Groupes de trois': '45 Groupes de trois — 2 → 2 → 2 → 5 → 5 → 5 → 7 → 7 → 7', '46 Syncopé A': '46 Syncopé A — 1 → 4 → 2 → 6 → 3 → 7 → 2 → 5', '47 Syncopé B': '47 Syncopé B — 7 → 3 → 6 → 2 → 5 → 1 → 4 → 2', '48 Cascade': '48 Cascade — 1 → 4 → 7 → 2 → 5 → 7 → 3 → 6 → 7', '49 Cascade inverse': '49 Cascade inverse — 7 → 6 → 3 → 7 → 5 → 2 → 7 → 4 → 1', '50 Chaos contrôlé': '50 Chaos contrôlé — 1 → 6 → 3 → 7 → 2 → 5 → 4 → 7 → 3 → 6'}
-PUMP_PATTERN_NAMES_EN = {'01 Escalier montant': '01 Rising staircase', '02 Escalier descendant': '02 Falling staircase', '03 Vague complète': '03 Full wave', '04 Vague courte': '04 Short wave', '05 Montée rapide': '05 Fast rise', '06 Descente rapide': '06 Fast fall', '07 Alternance extrême': '07 Extreme alternation', '08 Alternance douce': '08 Gentle alternation', '09 Double maximum': '09 Double maximum', '10 Triple maximum': '10 Triple maximum', '11 Double bas': '11 Double low', '12 Double haut': '12 Double high', '13 Marche paire': '13 Even steps', '14 Marche impaire': '14 Odd steps', '15 Pic central': '15 Central peak', '16 Pic double': '16 Double peak', '17 Pulsation 3-7': '17 Pulse 3-7', '18 Pulsation 4-7': '18 Pulse 4-7', '19 Pulsation 5-7': '19 Pulse 5-7', '20 Pulsation 1-5': '20 Pulse 1-5', '21 Dent de scie montante': '21 Rising sawtooth', '22 Dent de scie descendante': '22 Falling sawtooth', '23 Deux marches': '23 Two steps', '24 Trois marches': '24 Three steps', '25 Plateau moyen': '25 Medium plateau', '26 Plateau haut': '26 High plateau', '27 Plateau bas': '27 Low plateau', '28 Accélération niveau': '28 Level acceleration', '29 Décélération niveau': '29 Level deceleration', '30 Battement court': '30 Short beat', '31 Battement long': '31 Long beat', '32 Battement asymétrique': '32 Asymmetric beat', '33 Haut dominant': '33 High dominant', '34 Bas dominant': '34 Low dominant', '35 Escalier double': '35 Double staircase', '36 Escalier saut 2': '36 Staircase step 2', '37 Triangle serré': '37 Tight triangle', '38 Triangle large': '38 Wide triangle', '39 Maximum intermittent': '39 Intermittent maximum', '40 Maximum fréquent': '40 Frequent maximum', '41 Maximum progressif': '41 Progressive maximum', '42 Relance basse': '42 Low restart', '43 Relance moyenne': '43 Medium restart', '44 Groupes de deux': '44 Groups of two', '45 Groupes de trois': '45 Groups of three', '46 Syncopé A': '46 Syncopated A', '47 Syncopé B': '47 Syncopated B', '48 Cascade': '48 Cascade', '49 Cascade inverse': '49 Reverse cascade', '50 Chaos contrôlé': '50 Controlled chaos'}
-
-MAX_SELECTED_PUMP_PATTERNS = 50
-
-COLORS = {
-    "bg": "#111318",
-    "panel": "#191c22",
-    "panel_alt": "#20242c",
-    "border": "#2c313b",
-    "text": "#f2f4f8",
-    "muted": "#9aa3b2",
-    "accent": "#7c5cff",
-    "accent_hover": "#9278ff",
-    "danger": "#ff5c72",
-    "warning": "#ffb84d",
-    "success": "#39d98a",
-    "track": "#343a46",
-}
-
-
+from .settings import *  # noqa: F403,F401
 
 ENGINE_BUNDLE = 'c-qZ8+iv5?a_{<zK3p7_nw4luvg{dUy@A$a?|L)#7`At@fR8~?VoT-@Me^{XvEw*6ugP;h;2;k{d|vXBmmrV&lk+91>KmIkUuKaYh9OgARdsdUx~jVAuYR|kr^)ur54UN!Ch=W%6NRJBB8gVSaTa-&C)9C>zlx(IBW@T*nVb1hn07kyUb2kcB&G6u;)Y(dQcu&naPCL)>&#E-Jd@vkO`}j=uiWfLUPr0CO8sT%2I^Zh|3npbn$O}Sn$uK4XLJ=W{6Mji`76q&5(D+XpUHWg;b81Rb{G5MQr@42cb!g_+)X+Jei*<kpzbI6{5$+|5co9Adi=}99ArY14!xbzI3vdl?l4KBgwse|m@&DyOM$n;TR$_|UHmalA}<f97{HySK-40~VVb!?K>P5-bHkLt-!*DxLW~0SAGc?Dmc>E7?8kw7N0UCnFfGP@Ongp+ljdmMPUq-oIw1SRu;FL1a0h+7=nwGYEq>VcTYJ2CHyiCNW=7{=dho*`fTO6an`lMNF4-oAHIKrDzuaEBSpb3?%JE^S{@k74Pz#l6bUN=3kETC;xO6TKrl-!u;lan#_ZL8J*Rs{4vyUG>I45{_RNQ=jIDP-!^z=R4wJm$l>3DQO60|z%#4hUJjHAyqnUF;gxmlO=za_J~jHX=PUy-9I0b3$-HwN3?JQB}Oz~tx(#7jIH=Y9%8&isWtr(i+}`LTZzeO?Cs@iCDkrZ%xh#J0unFTarKR6K%fnr0+$$=VGlps(G;cW0<A%Gm_x*k1d<P)aR^1b{h(>8#vabI>CzKQxEqaSybVnMss~o(ak~*=+dKx?S>y0ElIG;fI?Mg~^0`qNZuzPVFACZ|xELw9B7tJp3}90(R&8<K^`7(7Cw$cm_-`3Km-S4ZSsu%1q&RIyJgX=5fA?ohXz-59pc(6J)wB@>73J-5ezlN2}Ofg2_ff6lN}np2<D%SAGV%*!-CcENhR;g;6ZaWsggRJ$Yv8d+c){C(Tgs%h3@|`s}BZGw1y9!{PMeuzA*d#gvbZ42g0!y}Ud;KSi6o-?9hfFrB;L?g?4pbi!<FLat!UVUK|5cX|ZWxZ5Lp*FCaj4-06IrgIv40%4B<jTyp-ArBbBi2Up>!8GO|v|#h^8Ev6nL1(x-3O7#_;)sFmvCk0$8<P`YeDesl>BhcS0c0S%<UQjy(_sV+$>|=M1{qC4Hw34lw^_3J%SzG$(BhLpzty3=D4#RXAtPCQGSGMAeUzj3fD!nsd?f&P7{NVu!R9-#$z|flWk5CEz0#xy14(q|rh>`xoCiY*apUG$Rd^g^L{8iU;u$O*V8sPrN+F819SI4GgoLdsLkMy(CTISfptKV=DAc{9CMyAV8KB3wEC}v#QtFz4?vb-RNLk<^qyC<d%$|n8XY^Ks+u?9(T=B`^-f3`S4yPuvR|s)vYjA`9Sa3OJ{E1Hn2kPLlm!xx_N>8Gt*>kBD*9>u3Ml76)7G5P}re8DM5#Z*xU@fSbwB%UaRELFRhC5(f5v&U}=pBtM4hjkkU@3xVw~Fp)Skm=a6V9%JlP0E5bWa%(1Kv}>C5tT^?GW5*KHoeBo5zF;J!E0GG`GSZ7z()8=CK8*<Tr)nMmG7*&BS`iqKjZ&31TRyj|Lhfg!`r7M43}@&A^8mIHZNE&107Mf6S#J>~hL{8Vq4XegN5l6Ts3SLTM!^YUViF0rF`Hcpz<KBzciGIT~xRTK6%I!ez;0@Q&2$u2LSOuv<__k;`G#?X?gw+QaDOhD(SzDNP_N5l-3=;~D(h0zQEJy2)2`^6wx5v8afvCrx0j&8S*>hFTy{s$o*tu@&9|cmh=@q_GwlI5rz;XP_`3^<E~B<oF9=AC>7yLG295IStrS0LGn`R}E!W(iL|`3Yz&>NK4_Y;9tV;knbUfifM{r!ULBV+zgdFN)#s9ov{v|q1P7(L*0wD8SFy-9?qi}5}0XW<3l#nk(>dS=w1Q(oe<?nn)X;)As6Laa^QjmsWn-}nz5X%41_!HBq->2O_NlMe<SGxL*;ddGPcRVjT@!l!LZb9{xjevH>mKesd)GLq0^ZMpdxY(X>4+Ll!xgY*4&I|d6*J9jvxA&<CrN87Clx}O;~}@ov7Nxb2AsRC#(W2NNK&)L@+C%uIFTsI+zsX<3Z`LZ{*pc|F#b$o*_~_{Bh^3yaW<g*XrgXN{9=SXVk4Fq@#v_GkO504Ua#nfYW~jyyeC*EFz|fS*Oj@P4~)hGvm73?GbSobJ2laJdUFjpLaDr@kbPWhwKkfua6poJgZZ)QYaD4f|9?0>@_sS(=Pdj49kRg4f!*s^{lcq4W%122na%88Bvbr9P^NE83lRNl~qVpT$LYVq0B_?UfI`$v<2*SM_B*}!pD1#D{Nqu7BvC<Eg1JP?Pk@!#s4^ozr4xJVmw3!JTg!?BGuP9zLI+CUSAEG7(st<WZ@+ZQ#@p>^?3C`MZwqubl01?p{H&Lr-G7l7DWM@3VTva<}306lMp6xY%)X%CVIrn$@f1Uvx1PNbiBd=-<!b4z6*i=FF<|_B@Y<WzGTu;WY?nlfkIc<9A2nWkWT_dGzJJPzuDiC<*dm!`^AjPX2YckC{+RDP-<K*9kBg%R|bHSczt|!@H)R|O2a2GC;U@>fSnt7a2kcQ{9u+Z&`=Dcd^@4A8l{=zd)NoyYG<t^#t#Iw5G+ctgT@r)nNTOd4^T=PXAsTsHo{queMVUn`g6?zKi~MU&{iLV*g57mYJ`$_LHKIU7QOY;EH%6J2+$ae7+b&+Z)jQkk14)QkDQ-QkALaOrxza&{tn9b^TX*$x0#Za(rgw0G=x?2$PH534CsD#ebth~FzO_E7y^<LL{V&Z86%F8E^v?~rkZ58WpquyX(I%;y4oWVJwIM(?XoB1XMGB3KxqtSJSbS>!Sa%8OoYn|CP;E}_A~gp=ch4f7;-+0k`>EBnLuU}(<HkS<`udth#eq_s<CS}`t`mZ#hB4nKsv>Y?r>QI2$QXmUcQP`^WK<8s};DgF}X5yCJfF1tm#HU%$UF!4_)##G5!!5U5hQLRI})pDLTb!DhN!a!Jg!<>Km6yPRk17_h&dh0hhtmLi%%ElOiX08CMCNuXUDo$K%m%-Soiya9kwaY&zT!4!AKx92K^JMzDY!dGl!0iK>tU3Ps8#fWQxFPmfyi(n{mN&rBu^$iK>DSLw2x4k4LtHIe`nPir(Kcgg-f8dH6GGK@<kWVLR~^B_tolcZ+3GHNl0g_0L#h*9|k8I;1aIOWD%sMVX9C$q*POYakB6|c=TWG)e3N@Tcmiq)ludkc_X1Q1)VzyW2RC({Jg|F_P-Swi#50Gglyqu&psJ}ZPmH-H;&kPeS#Y{c$02&)hjgaRkKHRr6aKPfl)dG~X|JBTbbD5S;hnWI^s6Iex^B~-Z1{Kid8?6ynv9<Yo-C#Cx$I(KS|nIk&tCM5bHxF+28QoYHovBigH?RHOJRrwtU1BQOPq)i6n)U$Nf@7L0FE!wMr3S5zcdmfg6Mio?YP=&|a0=PYO=7u6{Ri_8hQU4Bnf2Ikn(-3;@i>;Ag`x$oR(G%f%MT5w@6W4G*qzV6$xKLg4OPa?wQR2^e3i6<Fl3@D3Fb-VS-CKqcW_S~FuW|7}!Y$1IfNR{U`JOA03@xKUeoQ0fsZGi?4)#Y_R*&0gONxE*otIQMid8hGTWs`*Z4ct+1ycl~-U_Cg!ZgGr9>`z+^e+V41(2JrDY+LcJZz8t`lo+u2$6G`hh~Z<CsT(L&SA-HLgY~U1H0S8y;1Nfkbup#?{Z054ZMgzFn_WrgNTUt+GJ*I{t2kh`5<HhCIP^0(<$d218XdT?x!&N96C{U198oxYk$tFsYa{R?@8+{-IG?T-xSuW-%?h~?>=xwevR&K@)?8=8uALd^HS527IaQQ4y>L1-G@WXbYk9mCHJNHw0wX(_JtNy2!;z&-#@h=E1O49hABJIhY?b4m|#gyre~o`LWO6E$W+!Nios)D1kOoy5$5PD&hSeaVk}k&q@Vrl#stx8bGq(mHR8qQG2podNjLuu_2C4i3Q9slc4ujX`+!g&<{>P*E7qE!*sGLMwzP-=X)44`UX+*k^j<R!vu4MJSY`}Hpft-GERIuxz=Q-%l<k-LzEQ$x5z0A*<Ot-Dd)W7#;N(-92js`-?uUE^T%fP#*m;3$<X4yd0T?%q-GusqMv2}6rMa(K(}0FsXE0U1fxCUlTx|P<dDS+}=2oYYEf#Vuhl4!i9?Y$)Ci54_y(Ig3^mv6ywd2S{yCK??u&=8Yf$gR86qzaq^_W;PyfR8l{A|p<jZ?61J${7X6A5KH`x^p|=@us8t|9scTX~3k0mNvew=l})f{SpOyDR&e$?Bm_K#Lx1*=;rfp5Mr4K(5oUR-A1f6F<JePh>V#4j*D-VD!i{5vaO&wt&5K?c_NdItnD9t52}xoBT_<j};p(Wso{M(I@t`372QBEa59vqcXFbC=MZ2V(Ht2Pw}DB4Nyz5E^94VPnyIjl)BDSwY=aC38(>tS&!XZw1OXWgjV|cf<{Q6-1Afo)+UbpU}#3sytLZ_f|rr!d5B8jHDs|27t14zl|=a(Pl8xPT0gFYp@-I595S)=b38{-qtN0w3eCtGZEN9Eg7y_`$uP)zj8LoRkil8%L{Cvf1d#2SQ7k&hdM}n0JmMUWgs^xO#Gdo6rXxCcC8&k$GIL1v72qmc1g1ts$W5sDXW!dAMtr*HAlk?RqUdEafD$DQ>?HE25ZgpcOHj-_)n#c&C?u~P>cQJe!lxfkNuK!uroe_ye_@>EKEx&5dBW%-Ww3H@9d;;(ydeYIo>=zcf&5;cLa34ur(YP4_gmP)27PX!D@b~Hs)kUg0m&8!CY2yO4fpWC5-kR2M{s1SWes5DR2nX?I`t|KYF|gx!}@JMo|h^QY_(tt*4l;PSh$av<UD~cpbys=wYo(c-lN#Gf_2DEAOh(9Pn`nxCnXj-a_TS9eNBG4&$>AN{`mB=M~bhPhvz36ty;;0oMK>dIEr%vOa!n*!q;Afry`7q!r(N@j#qKOvIy!mbSsJiv|Kn#iHqo5Dchya%6V%!#*`WjJ))h=(!)`*L<M5gLlH&Y!hLO1hxbYr5d>Yo+E{1le!@gtAyDgJ!@W`_((n6WoM(Nontn<XNXYk%hNgCPct(ab!Hj*QH|XM4O%-RBz`9pj9!gZogJ``V8I?-VnpVM=p2d|1L($yv8du6LZm2A<Wz<)P8SkSML1N!CyAQ0_RZb^RH*yDY(Il*UZSc|}Q!`-=(8@y?{*zfV)y8I8VV-rbueR1oO*P(5({_(oWZ-)}rUqBFT7XlTh&Ce;mp{Pm9QVRDk1O2qdMs7y0_a?9eW|VlJBx}TZ&5j|sUmgL8B7bi-5sr<1WTX^Roj16M^FH<o2Rt;RAM>cYLG(k1E=l89TuzWV6!}P{+=e0vr21@=!Z_|qIiM;5n1!EK!y9%k?V5_kp+GnZ&AZykB~4R2Nh<}5N=#}#(<gtFe6Dq*14)|vDXY#bfT%}2&}Z+Ff1)n62w7(T6fz|*@<MZO|wq5$3k7VsbgGWHfE76W-W|5b1)8jR656beKi?hSKW%Ix<6igJbh1b<Aga`k6hlx{IXkhxK^Qwva$s646@O1s?;bb&hrElct^(rG=8Ywn%_iF?U^N_-8Nhde!48KnrL6wY{Q4O^Oo(psu%-_En6-j($G2e_%g`Nva(UcD^zXe_fsb=CkArIqX=A990dV3a@)2e8kUdtPN;Bo+{!nL09M-AGZ>K3u%U@bKID5vld6u3AbmU#(zqw3J2lLwc`m~HWz1?DNrD*78?SscPUK0^H3uAi%0N<h?ZK8W&|sm(mo!&Po4U%v!C(9^r=6-bsbC~dr8&6TzhW~!uGT&!Le28eR)`f_m^nFVzF7FTW^C~b+?urjz-UEnE4^E_XGq&L#IBI3j1{6H9(m}s<0?~{6na;-@H{&A7k)m*WM5jKAG$qKIpFn#2of3xF2=L&mmdzOT7nWvtM@fon^HU2F)rlWSnS!aFhE_N*tsifs7t=pPWtGueGvU<+_3spa|i6;)JA2hXxJYv@*#co*AZ2MF?r&oNTpuUU#e(U>JxcObFR*J$mKC8{hgSK0N*fu;E@NZs%Wu*l?9a5u%9H3PGOXj-33cKy4Hj<OY#im%-+SRBbAStHBVl^_DHRHP~4J7wTe6J^jTK#TGm+%qt86aL@8B|E4^tp*p=&xT?UyCwjP73FZZCyoZ)ccd|R7Er-u9$kxdZD=HtyHZhaKJy_BR>oJ5Q^|AlW+DN|()E|y_i4MaasadMr(LDX3Ao-5Q2*f2vMVY>pGKa)LdqhT8{3O0{nwD}K@HV_22+Waf-asdx9JI9PXgjvE*5z7~uQme^(^wf9Kwl?EJSQTaa+WZ2a{Efc(LLYr%x?rcXD5Xzxr&WD_2$3ryU&GRRawb0;S;(hr8SPv*mNgZ_ZbWX5H;p1^LA&ZK5VT9>*8eBHyhJDvE%~A|uzMw=by$wRc7yK!x$Z5!f^QhmWCfLyMYmNkwfR5I8;c>bGQv6vf;EN-9#(pUy%@@9@%IwlrJp@RkZ(TnVC0cBk7I~9Xw7&y*djmj%}h7%dk|l8_Qt`U^|Vq&4JKcWL{V0%wyRQ|cKx&hMa*n^$FgJ&{DsS2dHino_2yoAX_SxOeTCt(H0N1pt^e_2ldqp8cuE7j3ND@NY>Oc!46sbxZLKJ+`vSjdEx+4-eoL$1g*0E-Lik?_BF}>Htzi*rKAu*0eT4Pj^S=+<do8=mb&`lJMR4CV=LhR~QVo{Y+)1fs37w{#gQsBM?ALOz)&!*7ntZYu(bUQ0*=9TOmiFkk#AYE|B&+=j-ES2C?9NRTcyPO&t2rLjCi|`9eZjgfNj8;6?U+wCdYi~&7*d4*#w)SQCJF+k&u+_5t*vK9ywN`RuwWl{%W>!@yWPe7{Y4G*HAFdsFBfZ_Lc7~nVc#fQN@GerCtXERb^|hQrSP>7(;I?2{9v3d1e*2IeX7u|Fjv+QWGdm3S13&rtZ!rpZ*4k~g$1gD>(_BvuR%9FK6n!;-Yfmxer2Pi(>`f5G&PsTuApMA-D;lS41Kx%G}0>nyAUOq?h6E8D6$<`wwSrFI$yfrJ+sKc!j{}ux*(Hx)(B4lkbih$DO(u#ThsIN%|Bmm)f6I*9x!1ae>~lq4D9sbIckyuwiqU3b`Ih9Mtipqs{MWAiRX(TPjC1ErOpf1&DXT+Ixp1$mwmVTV%*S1%yR3EFJ>*<8eE>@1+`~S9;@2u5HgB9sh>6$Yz)Lv34DDaxGTN9Ax<H@?#+$YJKPu4vdvBW;ct3lwsl5I5~vBWIZeH%LWBTk=ZxiE_7`xb>jF2>TNR=0or||+I?a10ItgCvHtws`N6_KK%Ptvh*r6{DOHGPkz#A}l+URS3hHCSu4&Ad7oxNm>|JN&#n|Cok=)rDU(`1?B8gM2+I0QSB<BCV7!CKtx4Yp*N?i+t=G=r&j>+_&}anJ&fTGEA^2id;CUd*6gD+WIz+fH!qhJ8^S0@>^?ru*tmVLrsJWw&8Nme*$)T??vh?X=?Z4t9T~hGlOnE6g@Dw23yPk=-r@UM{rqX%E^^G3o7NrrtK{VB9(^ORV}Tv1%QC*e+o|?2Fv_8A;o3pQ6F@mM@q-Z_ooGe<gk2NHefECxZp7)u^!J@Oq4A%#gir@&vYQ>b0WVPolG?PosYKp2U+UF#7C2zZF<pEoU9J+NfnT&Avc#3hg=Z+3f-lNx~~tCiaN?xJTRyg$K;wyGEKHAk!pubzS;bXEBey*xAx!Z>)#fh;2QyTR2)O&uv29W1&Et^4^443JyM=UR<6ZA6#m0t%)P3khbZEY1#iCoa1RZf?Hph^BA=}#qMZ(9g(GWllj+0`5%aI=}`U_E(fKVcBmMS^!V~rg&06)6X5?QKjMu4+|9@TNPt}!$6;@zI1Y-+ag3IKxyS|C?fefZ<yH>'
 
-
 def ensure_internal_engine() -> None:
-    """Installe automatiquement le moteur inclus dans cette application."""
+
     PLAYER.parent.mkdir(parents=True, exist_ok=True)
     engine_data = zlib.decompress(base64.b85decode(ENGINE_BUNDLE.encode("ascii")))
 
@@ -71,9 +32,8 @@ def ensure_internal_engine() -> None:
         PLAYER.write_bytes(engine_data)
         PLAYER.chmod(0o755)
 
-
 def find_script(video: Path) -> Path | None:
-    # Priorité au funscript ORIGINAL placé dans le même dossier que la vidéo.
+    
     candidates = [
         video.with_suffix(".funscript"),
         video.with_suffix(".rot.funscript"),
@@ -85,24 +45,23 @@ def find_script(video: Path) -> Path | None:
             return candidate
     return None
 
-
 def convertir_original_temporairement(
     script: Path,
     video: Path,
     amplification_percent: float = 0.0,
 ) -> Path:
-    """
-    Transforme le funscript linéaire en vitesse rotative par plateaux.
 
-    Le fichier généré est temporaire et reste au-dessus de 50 :
-      50 = arrêt, 51..100 = rotation.
-    Il n'y a donc plus de faux va-et-vient dans la piste rotative.
 
-    Amplification :
-      0 %   = calcul normal (x1)
-      50 %  = environ x2
-      100 % = environ x3
-    """
+
+
+
+
+
+
+
+
+
+
     amplification_percent = max(0.0, min(100.0, float(amplification_percent)))
     amplification_factor = 1.0 + 2.0 * (amplification_percent / 100.0)
 
@@ -122,7 +81,7 @@ def convertir_original_temporairement(
     if len(actions) < 2:
         raise ValueError("Le funscript original contient moins de deux actions valides.")
 
-    # Éliminer les doublons de temps.
+    
     uniques = []
     for action in actions:
         if uniques and uniques[-1][0] == action[0]:
@@ -148,14 +107,14 @@ def convertir_original_temporairement(
         if duree <= 0:
             continue
 
-        # Une longue section presque immobile devient un arrêt réel.
+        
         if amplitude < 2 or (duree >= 2500 and amplitude < 8):
             commande = 50
         else:
             vitesse = amplitude * 1000.0 / duree
             vitesse_amplifiee = vitesse * amplification_factor
-            # Minimum suffisamment élevé pour démarrer réellement le Mowgli.
-            # L'amplification augmente la commande sans dépasser 100 %.
+            
+            
             puissance = max(0.20, min(1.0, vitesse_amplifiee / 160.0))
             commande = 50 + int(round(puissance * 50.0))
 
@@ -181,16 +140,14 @@ def convertir_original_temporairement(
     )
     return destination
 
-
 def natural_key(path: Path) -> list[object]:
     return [
         int(part) if part.isdigit() else part.casefold()
         for part in re.split(r"(\d+)", path.name)
     ]
 
-
 def script_candidates_for_deletion(video: Path, selected_script: Path | None) -> list[Path]:
-    """Retourne tous les scripts portant exactement le nom de la vidéo."""
+
     folders = [
         video.parent,
         video.parent / "rotation",
@@ -219,7 +176,6 @@ def script_candidates_for_deletion(video: Path, selected_script: Path | None) ->
             unique.append(candidate)
     return unique
 
-
 class RotaryPlayerGUI(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
@@ -228,8 +184,8 @@ class RotaryPlayerGUI(tk.Tk):
         self.minsize(1100, 820)
         self.configure(bg=COLORS["bg"])
 
-        # Démarrer maximisé sous KDE/X11. Repli sur la taille de l'écran
-        # lorsque le gestionnaire de fenêtres ne prend pas -zoomed en charge.
+        
+        
         try:
             self.attributes("-zoomed", True)
         except tk.TclError:
@@ -497,7 +453,7 @@ class RotaryPlayerGUI(tk.Tk):
         )
 
     def build_ui(self) -> None:
-        # Interface fixe : aucun scroll général.
+        
         # Le seul scroll vertical reste celui de la liste des patterns.
         shell = ttk.Frame(self, style="Root.TFrame")
         shell.pack(fill="both", expand=True)
@@ -569,7 +525,7 @@ class RotaryPlayerGUI(tk.Tk):
         root.columnconfigure(0, weight=1)
         root.rowconfigure(3, weight=1)
 
-        # F11 bascule l'application en plein écran; Échap revient maximisé.
+        
         self.bind("<F11>", self.toggle_app_fullscreen)
         self.bind("<Escape>", self.leave_app_fullscreen)
 
@@ -893,7 +849,7 @@ class RotaryPlayerGUI(tk.Tk):
         c.delete("all")
         w = max(c.winfo_width(), 2)
         h = max(c.winfo_height(), 2)
-        # Grille très visible, même avant le chargement d'un script.
+        
         for fraction in (0.25, 0.50, 0.75):
             y_grid = h * fraction
             c.create_line(
@@ -949,7 +905,7 @@ class RotaryPlayerGUI(tk.Tk):
             )
 
     def send_mpv_command(self, command: list) -> bool:
-        """Envoie une commande JSON IPC au MPV actuellement lancé."""
+
         if self.process is None or self.process.poll() is not None:
             self.set_status("Aucune vidéo en lecture.", "warning")
             return False
@@ -1012,7 +968,7 @@ class RotaryPlayerGUI(tk.Tk):
             except (OSError, ValueError, TypeError, json.JSONDecodeError):
                 pass
 
-        # La boucle continue même avant ou après une lecture.
+        
         self.after(80, self.update_graph_position)
 
     def add_scale(
@@ -1120,7 +1076,7 @@ class RotaryPlayerGUI(tk.Tk):
 
 
     def test_pump(self) -> None:
-        """Lance un test direct sans vidéo et sans funscript."""
+
         if not PYTHON.is_file():
             messagebox.showerror(
                 "Python introuvable",
@@ -1198,8 +1154,8 @@ class RotaryPlayerGUI(tk.Tk):
         self.current_video = video
         self.current_script = script
 
-        # Conversion automatique au lancement : le va-et-vient linéaire
-        # devient une vitesse de rotation dans un seul sens.
+        
+        
         try:
             runtime_script = convertir_original_temporairement(
                 script,
@@ -1295,7 +1251,7 @@ class RotaryPlayerGUI(tk.Tk):
             self.set_status("Aucune vidéo actuelle à passer.", "warning")
             return
 
-        # Préparer les vidéos suivantes si aucune liste n'est active.
+        
         if not self.playlist_active:
             videos = sorted(
                 [
@@ -1362,7 +1318,7 @@ class RotaryPlayerGUI(tk.Tk):
             self.after(50, self.play_next_in_playlist)
 
     def launch_folder_playlist(self) -> None:
-        """Lit la vidéo choisie puis toutes les suivantes du même dossier."""
+
         selected = Path(self.video_path.get())
         if not selected.is_file():
             messagebox.showerror("Vidéo introuvable", "Choisis d’abord une vidéo valide.")
@@ -1420,7 +1376,7 @@ class RotaryPlayerGUI(tk.Tk):
         messagebox.showinfo("Terminé", "La lecture du dossier est terminée.")
 
     def delete_completed_files(self, video: Path, script: Path | None) -> list[str]:
-        """Supprime uniquement les fichiers correspondant exactement à la vidéo terminée."""
+
         deleted: list[str] = []
         errors: list[str] = []
 
@@ -1475,7 +1431,7 @@ class RotaryPlayerGUI(tk.Tk):
                 self.set_status("Aucune vidéo suivante disponible.", "warning")
             return
 
-        # Le moteur retourne 20 uniquement lorsque MPV a atteint la vraie fin.
+        
         if code == 20:
             deleted_count = 0
 
@@ -1613,13 +1569,3 @@ class RotaryPlayerGUI(tk.Tk):
         except OSError:
             pass
         self.destroy()
-
-
-def main() -> int:
-    app = RotaryPlayerGUI()
-    app.mainloop()
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

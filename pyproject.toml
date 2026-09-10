@@ -1,0 +1,13 @@
+[project]
+name = "joyhub-gatling-2-player"
+version = "1.3.5"
+description = "Linux BLE funscript player for JoyHub Gatling 2"
+requires-python = ">=3.11"
+dependencies = [
+    "bleak>=0.22",
+    "buttplug>=0.2",
+]
+
+[tool.uv]
+package = false
+python-preference = "only-system"
